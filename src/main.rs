@@ -13,43 +13,55 @@ fn predict_vec(inputs: &[f64], weight: f64, bias: f64) -> Vec<f64> {
         .collect()
 }
 
+fn average(samples: &Vec<f64>) -> f64 {
+    samples.iter().sum::<f64>() / (samples.len() as f64)
+}
+
 fn loss(inputs: &[f64], labels: &[f64], weight: f64, bias: f64) -> f64 {
-    let length = inputs.len();
     let prediction = predict_vec(inputs, weight, bias);
-    let error: f64 = prediction
+    let error = prediction
         .iter()
         .zip(labels.iter())
         .map(|(l, r)| (l - r).powi(2))
-        .sum();
-    error / length as f64
+        .collect();
+
+    average(&error)
 }
 
-fn train(
-    inputs: Vec<f64>,
-    labels: Vec<f64>,
-    iterations: usize,
-    lr: f64,
-) -> anyhow::Result<(f64, f64)> {
+// def gradient(X, Y, w, b):
+//     w_gradient = 2 * np.average(X * (predict(X, w, b) - Y))
+//     b_gradient = 2 * np.average(predict(X, w, b) - Y)
+//     return (w_gradient, b_gradient)
+
+fn gradient(inputs: &Vec<f64>, labels: &Vec<f64>, weight: f64, bias: f64) -> (f64, f64) {
+    todo!();
+    let prediction = predict_vec(inputs, weight, bias);
+    let error = prediction
+        .iter()
+        .zip(labels.iter())
+        .map(|(prediction, label)| prediction - label);
+
+    let length = inputs.len() as f64;
+    let weight_gradient = error
+        .zip(inputs.iter())
+        .map(|(error, input)| error * input)
+        .sum::<f64>()
+        / length
+        * 2.0;
+    let bias_gradient = 2.0 * average(&error.collect());
+    (weight_gradient, bias_gradient)
+}
+
+fn train(inputs: Vec<f64>, labels: Vec<f64>, iterations: usize, learning_rate: f64) -> (f64, f64) {
     let mut weight = 0.0;
     let mut bias = 0.0;
     for _ in 0..iterations {
-        let current_loss = loss(&inputs, &labels, weight, bias);
-        if loss(&inputs, &labels, weight + lr, bias) < current_loss {
-            weight += lr;
-        } else if loss(&inputs, &labels, weight - lr, bias) < current_loss {
-            weight -= lr
-        } else if loss(&inputs, &labels, weight, bias + lr) < current_loss {
-            bias += lr
-        } else if loss(&inputs, &labels, weight, bias - lr) < current_loss {
-            bias -= lr
-        } else {
-            return Ok((weight, bias));
-        }
+        let (weight_gradient, bias_gradient) = gradient(&inputs, &labels, weight, bias);
+        weight -= weight_gradient * learning_rate;
+        bias -= bias_gradient * learning_rate;
     }
-    Err(anyhow!(
-        "Couldn't converge within {} iterations",
-        iterations
-    ))
+
+    (weight, bias)
 }
 
 fn read_file(path: &str) -> anyhow::Result<(Vec<f64>, Vec<f64>)> {
@@ -79,16 +91,12 @@ fn read_file(path: &str) -> anyhow::Result<(Vec<f64>, Vec<f64>)> {
 fn main() {
     let path = "pizza.txt";
     match read_file(path) {
-        Ok((inputs, labels)) => match train(inputs, labels, 10000, 0.01) {
-            Ok((weight, bias)) => {
-                println!("weight: {:?}, bias: {:?}", weight, bias);
-                let prediction = predict(20f64, weight, bias);
-                println!("prediction: x = {:?}, y = {:?}", 20, prediction);
-            }
-            Err(e) => {
-                eprintln!("Error: {}", e);
-            }
-        },
+        Ok((inputs, labels)) => {
+            let (weight, bias) = train(inputs, labels, 20000, 0.001);
+            println!("weight: {:?}, bias: {:?}", weight, bias);
+            let prediction = predict(20f64, weight, bias);
+            println!("prediction: x = {:?}, y = {:?}", 20, prediction);
+        }
         Err(e) => {
             eprintln!("Error: {}", e);
         }
@@ -108,7 +116,13 @@ mod tests {
     #[test]
     fn test_predict_vec() {
         let (inputs, weight, bias) = (vec![20.0, 30.0], 1.5, 10.0);
-
         assert_eq!(predict_vec(&inputs, weight, bias), vec![40.0, 55.0]);
+    }
+
+    #[test]
+    fn test_average() {
+        let collection = vec![25.0, 35.0, 60.0];
+        let average = average(&collection);
+        assert_eq!(average, 40.0);
     }
 }
