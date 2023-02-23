@@ -28,29 +28,23 @@ fn loss(inputs: &[f64], labels: &[f64], weight: f64, bias: f64) -> f64 {
     average(&error)
 }
 
-// def gradient(X, Y, w, b):
-//     w_gradient = 2 * np.average(X * (predict(X, w, b) - Y))
-//     b_gradient = 2 * np.average(predict(X, w, b) - Y)
-//     return (w_gradient, b_gradient)
-
 fn gradient(inputs: &[f64], labels: &[f64], weight: f64, bias: f64) -> (f64, f64) {
     let prediction = predict_vec(inputs, weight, bias);
 
-    let weight_gradient = prediction
+    let errors: Vec<f64> = prediction
         .iter()
         .zip(labels.iter())
         .map(|(prediction, label)| prediction - label)
+        .collect();
+
+    let weight_gradient = errors
+        .iter()
         .zip(inputs.iter())
         .map(|(error, input)| error * input)
         .collect();
     let weight_gradient = average(&weight_gradient) * 2.0;
 
-    let bias_gradient = prediction
-        .iter()
-        .zip(labels.iter())
-        .map(|(prediction, label)| prediction - label)
-        .collect();
-    let bias_gradient = average(&bias_gradient) * 2.0;
+    let bias_gradient = average(&errors) * 2.0;
     (weight_gradient, bias_gradient)
 }
 
