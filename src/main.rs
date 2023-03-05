@@ -14,19 +14,15 @@ fn predict_ndarray(inputs: &Array1<f64>, weight: f64, bias: f64) -> Array1<f64> 
         .collect()
 }
 
-fn average(samples: &Array1<f64>) -> f64 {
-    samples.iter().sum::<f64>() / (samples.len() as f64)
-}
-
 fn loss(inputs: &Array1<f64>, labels: &Array1<f64>, weight: f64, bias: f64) -> f64 {
     let prediction = predict_ndarray(inputs, weight, bias);
-    let error = prediction
+    let error: Array1<f64> = prediction
         .iter()
         .zip(labels.iter())
         .map(|(l, r)| (l - r).powi(2))
         .collect();
 
-    average(&error)
+    error.mean().unwrap()
 }
 
 fn gradient(inputs: &Array1<f64>, labels: &Array1<f64>, weight: f64, bias: f64) -> (f64, f64) {
@@ -38,14 +34,14 @@ fn gradient(inputs: &Array1<f64>, labels: &Array1<f64>, weight: f64, bias: f64) 
         .map(|(prediction, label)| prediction - label)
         .collect();
 
-    let weight_gradient = errors
+    let weight_gradient: Array1<f64> = errors
         .iter()
         .zip(inputs.iter())
         .map(|(error, input)| error * input)
         .collect();
 
-    let weight_gradient = average(&weight_gradient) * 2.0;
-    let bias_gradient = average(&errors) * 2.0;
+    let weight_gradient = weight_gradient.mean().unwrap() * 2.0;
+    let bias_gradient = errors.mean().unwrap() * 2.0;
     (weight_gradient, bias_gradient)
 }
 
@@ -125,12 +121,5 @@ mod tests {
     fn test_predict_ndarray() {
         let (inputs, weight, bias) = (array![20.0, 30.0], 1.5, 10.0);
         assert_eq!(predict_ndarray(&inputs, weight, bias), array![40.0, 55.0]);
-    }
-
-    #[test]
-    fn test_average() {
-        let collection = array![25.0, 35.0, 60.0];
-        let average = average(&collection);
-        assert_eq!(average, 40.0);
     }
 }
