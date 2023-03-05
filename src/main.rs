@@ -25,9 +25,13 @@ fn loss(inputs: &Array1<f64>, labels: &Array1<f64>, weight: f64, bias: f64) -> f
     error.mean().unwrap()
 }
 
-fn gradient(inputs: &Array1<f64>, labels: &Array1<f64>, weight: f64, bias: f64) -> (f64, f64) {
+fn gradient_descent(
+    inputs: &Array1<f64>,
+    labels: &Array1<f64>,
+    weight: f64,
+    bias: f64,
+) -> (f64, f64) {
     let prediction = predict_ndarray(inputs, weight, bias);
-
     let errors: Array1<f64> = prediction
         .iter()
         .zip(labels.iter())
@@ -54,7 +58,7 @@ fn train(
     let mut weight = 0.0;
     let mut bias = 0.0;
     for _ in 0..iterations {
-        let (weight_gradient, bias_gradient) = gradient(&inputs, &labels, weight, bias);
+        let (weight_gradient, bias_gradient) = gradient_descent(&inputs, &labels, weight, bias);
         weight -= weight_gradient * learning_rate;
         bias -= bias_gradient * learning_rate;
     }
@@ -96,8 +100,10 @@ fn main() {
         Ok((inputs, labels)) => {
             let (weight, bias) = train(inputs, labels, 20000, 0.001);
             println!("weight: {:?}, bias: {:?}", weight, bias);
+            let prediction = predict(20f64, weight, bias);
+            println!("prediction: x = {:?}, y = {:?}", 20, prediction);
 
-            let target = 13.;
+            let target = 10.;
             let prediction = predict(target, weight, bias);
             println!("prediction: x = {:?}, y = {:?}", target, prediction);
         }
